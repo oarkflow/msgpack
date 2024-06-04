@@ -94,7 +94,7 @@ func (d *Decoder) mapLen(c byte) (int, error) {
 }
 
 func decodeMapStringStringValue(d *Decoder, v reflect.Value) error {
-	mptr := v.Addr().Convert(mapStringStringPtrType).Interface().(*map[string]string)
+	mptr := d.reflectMapStringStringPtr(v.Addr().Convert(mapStringStringPtrType))
 	return d.decodeMapStringStringPtr(mptr)
 }
 

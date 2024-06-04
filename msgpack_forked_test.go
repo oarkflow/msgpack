@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/KyberNetwork/msgpack/v5"
+	"github.com/davecgh/go-spew/spew"
 	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/require"
 )
@@ -30,6 +31,9 @@ type Foo struct {
 	epsilon IBar
 	zeta    map[uint64]string
 	eta     []string
+	theta   map[string]string
+	iota_   map[string]bool
+	kappa   map[string]struct{}
 	ignored uint64
 }
 
@@ -59,7 +63,19 @@ func TestFoo(t *testing.T) {
 		zeta: map[uint64]string{
 			69696969: "foo",
 		},
-		eta:     []string{"foo", "bar"},
+		eta: []string{"foo", "bar"},
+		theta: map[string]string{
+			"foo": "bar",
+			"abc": "def",
+		},
+		iota_: map[string]bool{
+			"foo": true,
+			"abc": false,
+		},
+		kappa: map[string]struct{}{
+			"foo": {},
+			"bar": {},
+		},
 		ignored: 69696969,
 	}
 
@@ -78,6 +94,8 @@ func TestFoo(t *testing.T) {
 
 	err = de.Decode(decoded)
 	require.NoError(t, err)
+
+	spew.Dump(decoded)
 
 	require.Zerof(t, decoded.ignored, "ignored fields via IgnoreStructField must be zero")
 	decoded.ignored = expected.ignored
