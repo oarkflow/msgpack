@@ -103,9 +103,6 @@ func (e *Encoder) Writer() io.Writer {
 // Reset discards any buffered data, resets all state, and switches the writer to write to w.
 func (e *Encoder) Reset(w io.Writer) {
 	e.ResetDict(w, nil)
-	for k := range e.ignoredStructFields {
-		delete(e.ignoredStructFields, k)
-	}
 }
 
 // ResetDict is like Reset, but also resets the dict.

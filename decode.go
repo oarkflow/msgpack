@@ -93,9 +93,6 @@ func NewDecoder(r io.Reader) *Decoder {
 // reader to read from r.
 func (d *Decoder) Reset(r io.Reader) {
 	d.ResetDict(r, nil)
-	for k := range d.ignoredStructFields {
-		delete(d.ignoredStructFields, k)
-	}
 }
 
 // ResetDict is like Reset, but also resets the dict.
