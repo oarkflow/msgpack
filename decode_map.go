@@ -266,7 +266,7 @@ func (d *Decoder) decodeTypedMapValue(v reflect.Value, n int) error {
 			return err
 		}
 
-		v.SetMapIndex(mk, mv)
+		d.reflectSetMapIndex(v, mk, mv)
 	}
 
 	return nil

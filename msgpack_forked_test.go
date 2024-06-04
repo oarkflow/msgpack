@@ -28,6 +28,7 @@ type Foo struct {
 	gamma   *uint256.Int
 	delta   uint256.Int
 	epsilon IBar
+	zeta    map[uint64]string
 	ignored uint64
 }
 
@@ -53,6 +54,9 @@ func TestFoo(t *testing.T) {
 		delta: *new(uint256.Int).Exp(new(uint256.Int).SetUint64(math.MaxUint64), uint256.NewInt(4)),
 		epsilon: &Bar{
 			alpha: new(uint256.Int).Exp(new(uint256.Int).SetUint64(math.MaxUint64), uint256.NewInt(4)),
+		},
+		zeta: map[uint64]string{
+			69696969: "foo",
 		},
 		ignored: 69696969,
 	}

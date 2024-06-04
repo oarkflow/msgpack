@@ -64,3 +64,11 @@ func (d *Decoder) reflectSet(v reflect.Value, x reflect.Value) {
 	}
 	reflectExportValue(v).Set(x)
 }
+
+func (d *Decoder) reflectSetMapIndex(v reflect.Value, key reflect.Value, elem reflect.Value) {
+	if d.flags&includeUnexportedFlag == 0 || v.CanSet() {
+		v.SetMapIndex(key, elem)
+		return
+	}
+	reflectExportValue(v).SetMapIndex(key, elem)
+}
