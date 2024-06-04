@@ -87,29 +87,34 @@ func decodeSliceValue(d *Decoder, v reflect.Value) error {
 	}
 
 	if n == -1 {
-		v.Set(reflect.Zero(v.Type()))
+		d.reflectSet(v, reflect.Zero(v.Type()))
 		return nil
 	}
 	if n == 0 && v.IsNil() {
-		v.Set(reflect.MakeSlice(v.Type(), 0, 0))
+		d.reflectSet(v, reflect.MakeSlice(v.Type(), 0, 0))
 		return nil
 	}
 
 	if v.Cap() >= n {
-		v.Set(v.Slice(0, n))
+		d.reflectSet(v, v.Slice(0, n))
 	} else if v.Len() < v.Cap() {
-		v.Set(v.Slice(0, v.Cap()))
+		d.reflectSet(v, v.Slice(0, v.Cap()))
+	}
+
+	// if v is an unexported field, use MakeSlice instead of AppendSlice later
+	if !v.CanSet() {
+		d.reflectSet(v, reflect.MakeSlice(v.Type(), n, n))
 	}
 
 	noLimit := d.flags&disableAllocLimitFlag != 1
 
 	if noLimit && n > v.Len() {
-		v.Set(growSliceValue(v, n, noLimit))
+		d.reflectSet(v, growSliceValue(v, n, noLimit))
 	}
 
 	for i := 0; i < n; i++ {
 		if !noLimit && i >= v.Len() {
-			v.Set(growSliceValue(v, n, noLimit))
+			d.reflectSet(v, growSliceValue(v, n, noLimit))
 		}
 
 		elem := v.Index(i)

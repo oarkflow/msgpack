@@ -263,7 +263,7 @@ func decodeFloat32Value(d *Decoder, v reflect.Value) error {
 	if err != nil {
 		return err
 	}
-	v.SetFloat(float64(f))
+	d.reflectSetFloat(v, float64(f))
 	return nil
 }
 
@@ -272,7 +272,7 @@ func decodeFloat64Value(d *Decoder, v reflect.Value) error {
 	if err != nil {
 		return err
 	}
-	v.SetFloat(f)
+	d.reflectSetFloat(v, f)
 	return nil
 }
 
@@ -281,7 +281,7 @@ func decodeInt64Value(d *Decoder, v reflect.Value) error {
 	if err != nil {
 		return err
 	}
-	v.SetInt(n)
+	d.reflectSetInt(v, n)
 	return nil
 }
 
@@ -290,6 +290,6 @@ func decodeUint64Value(d *Decoder, v reflect.Value) error {
 	if err != nil {
 		return err
 	}
-	v.SetUint(n)
+	d.reflectSetUint(v, n)
 	return nil
 }

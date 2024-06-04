@@ -17,6 +17,7 @@ const (
 	useCompactFloatsFlag
 	useInternedStringsFlag
 	omitEmptyFlag
+	includeUnexportedFlag
 )
 
 type writer interface {
@@ -81,6 +82,8 @@ type Encoder struct {
 	buf       []byte
 	timeBuf   []byte
 	flags     uint32
+
+	ignoredStructFields map[reflect.Type]map[string]struct{}
 }
 
 // NewEncoder returns a new encoder that writes to w.
@@ -100,6 +103,9 @@ func (e *Encoder) Writer() io.Writer {
 // Reset discards any buffered data, resets all state, and switches the writer to write to w.
 func (e *Encoder) Reset(w io.Writer) {
 	e.ResetDict(w, nil)
+	for k := range e.ignoredStructFields {
+		delete(e.ignoredStructFields, k)
+	}
 }
 
 // ResetDict is like Reset, but also resets the dict.
@@ -194,6 +200,27 @@ func (e *Encoder) UseInternedStrings(on bool) {
 	} else {
 		e.flags &= ^useInternedStringsFlag
 	}
+}
+
+// IncludeUnexported causes the Encoder to encode unexported fields
+func (e *Encoder) IncludeUnexported(included bool) {
+	if included {
+		e.flags |= includeUnexportedFlag
+	} else {
+		e.flags &= ^includeUnexportedFlag
+	}
+}
+
+// IgnoreStructField causes the Encoder to ignore the field whose name is fieldName of the struct whose type is structType.
+// This method is similar to `msgpack:"-"` tag.
+func (e *Encoder) IgnoreStructField(structType reflect.Type, fieldName string) {
+	if e.ignoredStructFields == nil {
+		e.ignoredStructFields = make(map[reflect.Type]map[string]struct{})
+	}
+	if e.ignoredStructFields[structType] == nil {
+		e.ignoredStructFields[structType] = make(map[string]struct{})
+	}
+	e.ignoredStructFields[structType][fieldName] = struct{}{}
 }
 
 func (e *Encoder) Encode(v interface{}) error {

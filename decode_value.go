@@ -1,7 +1,6 @@
 package msgpack
 
 import (
-	"encoding"
 	"errors"
 	"fmt"
 	"reflect"
@@ -70,12 +69,6 @@ func _getDecoder(typ reflect.Type) decoderFunc {
 	if typ.Implements(unmarshalerType) {
 		return nilAwareDecoder(typ, unmarshalValue)
 	}
-	if typ.Implements(binaryUnmarshalerType) {
-		return nilAwareDecoder(typ, unmarshalBinaryValue)
-	}
-	if typ.Implements(textUnmarshalerType) {
-		return nilAwareDecoder(typ, unmarshalTextValue)
-	}
 
 	// Addressable struct field value.
 	if kind != reflect.Ptr {
@@ -85,12 +78,6 @@ func _getDecoder(typ reflect.Type) decoderFunc {
 		}
 		if ptr.Implements(unmarshalerType) {
 			return addrDecoder(nilAwareDecoder(typ, unmarshalValue))
-		}
-		if ptr.Implements(binaryUnmarshalerType) {
-			return addrDecoder(nilAwareDecoder(typ, unmarshalBinaryValue))
-		}
-		if ptr.Implements(textUnmarshalerType) {
-			return addrDecoder(nilAwareDecoder(typ, unmarshalTextValue))
 		}
 	}
 
@@ -128,12 +115,12 @@ func ptrValueDecoder(typ reflect.Type) decoderFunc {
 	return func(d *Decoder, v reflect.Value) error {
 		if d.hasNilCode() {
 			if !v.IsNil() {
-				v.Set(d.newValue(typ).Elem())
+				d.reflectSet(v, d.newValue(typ).Elem())
 			}
 			return d.DecodeNil()
 		}
 		if v.IsNil() {
-			v.Set(d.newValue(typ.Elem()))
+			d.reflectSet(v, d.newValue(typ.Elem()))
 		}
 		return decoder(d, v.Elem())
 	}
@@ -155,7 +142,7 @@ func nilAwareDecoder(typ reflect.Type, fn decoderFunc) decoderFunc {
 				return d.decodeNilValue(v)
 			}
 			if v.IsNil() {
-				v.Set(d.newValue(typ.Elem()))
+				d.reflectSet(v, d.newValue(typ.Elem()))
 			}
 			return fn(d, v)
 		}
@@ -174,7 +161,7 @@ func decodeBoolValue(d *Decoder, v reflect.Value) error {
 	if err != nil {
 		return err
 	}
-	v.SetBool(flag)
+	d.reflectSetBool(v, flag)
 	return nil
 }
 
@@ -194,12 +181,12 @@ func (d *Decoder) interfaceValue(v reflect.Value) error {
 	if vv != nil {
 		if v.Type() == errorType {
 			if vv, ok := vv.(string); ok {
-				v.Set(reflect.ValueOf(errors.New(vv)))
+				d.reflectSet(v, reflect.ValueOf(errors.New(vv)))
 				return nil
 			}
 		}
 
-		v.Set(reflect.ValueOf(vv))
+		d.reflectSet(v, reflect.ValueOf(vv))
 	}
 
 	return nil
@@ -228,24 +215,4 @@ func unmarshalValue(d *Decoder, v reflect.Value) error {
 
 	unmarshaler := v.Interface().(Unmarshaler)
 	return unmarshaler.UnmarshalMsgpack(b)
-}
-
-func unmarshalBinaryValue(d *Decoder, v reflect.Value) error {
-	data, err := d.DecodeBytes()
-	if err != nil {
-		return err
-	}
-
-	unmarshaler := v.Interface().(encoding.BinaryUnmarshaler)
-	return unmarshaler.UnmarshalBinary(data)
-}
-
-func unmarshalTextValue(d *Decoder, v reflect.Value) error {
-	data, err := d.DecodeBytes()
-	if err != nil {
-		return err
-	}
-
-	unmarshaler := v.Interface().(encoding.TextUnmarshaler)
-	return unmarshaler.UnmarshalText(data)
 }

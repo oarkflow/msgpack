@@ -1,7 +1,6 @@
 package msgpack
 
 import (
-	"encoding"
 	"fmt"
 	"log"
 	"reflect"
@@ -20,16 +19,6 @@ var (
 var (
 	marshalerType   = reflect.TypeOf((*Marshaler)(nil)).Elem()
 	unmarshalerType = reflect.TypeOf((*Unmarshaler)(nil)).Elem()
-)
-
-var (
-	binaryMarshalerType   = reflect.TypeOf((*encoding.BinaryMarshaler)(nil)).Elem()
-	binaryUnmarshalerType = reflect.TypeOf((*encoding.BinaryUnmarshaler)(nil)).Elem()
-)
-
-var (
-	textMarshalerType   = reflect.TypeOf((*encoding.TextMarshaler)(nil)).Elem()
-	textUnmarshalerType = reflect.TypeOf((*encoding.TextUnmarshaler)(nil)).Elem()
 )
 
 type (
@@ -66,23 +55,42 @@ type structCache struct {
 }
 
 type structCacheKey struct {
-	typ reflect.Type
-	tag string
+	typ               reflect.Type
+	tag               string
+	includeUnexported bool
 }
 
 func newStructCache() *structCache {
 	return new(structCache)
 }
 
-func (m *structCache) Fields(typ reflect.Type, tag string) *fields {
-	key := structCacheKey{tag: tag, typ: typ}
+func (m *structCache) Fields(typ reflect.Type, tag string, includeUnexported bool, ignoredFields map[string]struct{}) *fields {
+	key := structCacheKey{tag: tag, includeUnexported: includeUnexported, typ: typ}
 
+	var fs *fields
 	if v, ok := m.m.Load(key); ok {
-		return v.(*fields)
+		fs = v.(*fields)
+	} else {
+		fs = getFields(typ, tag, includeUnexported)
+		m.m.Store(key, fs)
 	}
 
-	fs := getFields(typ, tag)
-	m.m.Store(key, fs)
+	if len(ignoredFields) > 0 {
+		filteredFs := *fs
+		filteredFs.Map = make(map[string]*field, len(fs.Map))
+		filteredFs.List = make([]*field, 0, len(fs.List))
+		for name, field := range fs.Map {
+			if _, ignored := ignoredFields[name]; !ignored {
+				filteredFs.Map[name] = field
+			}
+		}
+		for _, field := range fs.List {
+			if _, ignored := ignoredFields[field.name]; !ignored {
+				filteredFs.List = append(filteredFs.List, field)
+			}
+		}
+		return &filteredFs
+	}
 
 	return fs
 }
@@ -115,7 +123,7 @@ func (f *field) EncodeValue(e *Encoder, strct reflect.Value) error {
 }
 
 func (f *field) DecodeValue(d *Decoder, strct reflect.Value) error {
-	v := fieldByIndexAlloc(strct, f.index)
+	v := fieldByIndexAlloc(strct, f.index, d.flags&includeUnexportedFlag != 0)
 	return f.decoder(d, v)
 }
 
@@ -170,7 +178,7 @@ func (fs *fields) OmitEmpty(e *Encoder, strct reflect.Value) []*field {
 	return fields
 }
 
-func getFields(typ reflect.Type, fallbackTag string) *fields {
+func getFields(typ reflect.Type, fallbackTag string, includeUnexported bool) *fields {
 	fs := newFields(typ)
 
 	var omitEmpty bool
@@ -194,8 +202,11 @@ func getFields(typ reflect.Type, fallbackTag string) *fields {
 			}
 		}
 
-		if f.PkgPath != "" && !f.Anonymous {
-			continue
+		if !includeUnexported {
+			// skip unexported and not embedded fields
+			if f.PkgPath != "" && !f.Anonymous {
+				continue
+			}
 		}
 
 		field := &field{
@@ -228,9 +239,9 @@ func getFields(typ reflect.Type, fallbackTag string) *fields {
 		if f.Anonymous && !tag.HasOption("noinline") {
 			inline := tag.HasOption("inline")
 			if inline {
-				inlineFields(fs, f.Type, field, fallbackTag)
+				inlineFields(fs, f.Type, field, fallbackTag, includeUnexported)
 			} else {
-				inline = shouldInline(fs, f.Type, field, fallbackTag)
+				inline = shouldInline(fs, f.Type, field, fallbackTag, includeUnexported)
 			}
 
 			if inline {
@@ -263,8 +274,8 @@ func init() {
 	decodeStructValuePtr = reflect.ValueOf(decodeStructValue).Pointer()
 }
 
-func inlineFields(fs *fields, typ reflect.Type, f *field, tag string) {
-	inlinedFields := getFields(typ, tag).List
+func inlineFields(fs *fields, typ reflect.Type, f *field, tag string, includeUnexported bool) {
+	inlinedFields := getFields(typ, tag, includeUnexported).List
 	for _, field := range inlinedFields {
 		if _, ok := fs.Map[field.name]; ok {
 			// Don't inline shadowed fields.
@@ -275,7 +286,7 @@ func inlineFields(fs *fields, typ reflect.Type, f *field, tag string) {
 	}
 }
 
-func shouldInline(fs *fields, typ reflect.Type, f *field, tag string) bool {
+func shouldInline(fs *fields, typ reflect.Type, f *field, tag string, includeUnexported bool) bool {
 	var encoder encoderFunc
 	var decoder decoderFunc
 
@@ -300,7 +311,7 @@ func shouldInline(fs *fields, typ reflect.Type, f *field, tag string) bool {
 		return false
 	}
 
-	inlinedFields := getFields(typ, tag).List
+	inlinedFields := getFields(typ, tag, includeUnexported).List
 	for _, field := range inlinedFields {
 		if _, ok := fs.Map[field.name]; ok {
 			// Don't auto inline if there are shadowed fields.
@@ -338,7 +349,7 @@ func (e *Encoder) isEmptyValue(v reflect.Value) bool {
 	case reflect.Array, reflect.Map, reflect.Slice, reflect.String:
 		return v.Len() == 0
 	case reflect.Struct:
-		structFields := structs.Fields(v.Type(), e.structTag)
+		structFields := structs.Fields(v.Type(), e.structTag, e.flags&includeUnexportedFlag != 0, nil)
 		fields := structFields.OmitEmpty(e, v)
 		return len(fields) == 0
 	case reflect.Bool:
@@ -376,7 +387,7 @@ func fieldByIndex(v reflect.Value, index []int) (_ reflect.Value, ok bool) {
 	return v, true
 }
 
-func fieldByIndexAlloc(v reflect.Value, index []int) reflect.Value {
+func fieldByIndexAlloc(v reflect.Value, index []int, includeUnexported bool) reflect.Value {
 	if len(index) == 1 {
 		return v.Field(index[0])
 	}
@@ -384,7 +395,7 @@ func fieldByIndexAlloc(v reflect.Value, index []int) reflect.Value {
 	for i, idx := range index {
 		if i > 0 {
 			var ok bool
-			v, ok = indirectNil(v)
+			v, ok = indirectNil(v, includeUnexported)
 			if !ok {
 				return v
 			}
@@ -395,17 +406,21 @@ func fieldByIndexAlloc(v reflect.Value, index []int) reflect.Value {
 	return v
 }
 
-func indirectNil(v reflect.Value) (reflect.Value, bool) {
+func indirectNil(v reflect.Value, includeUnexported bool) (reflect.Value, bool) {
 	if v.Kind() == reflect.Ptr {
 		if v.IsNil() {
-			if !v.CanSet() {
+			if !includeUnexported && !v.CanSet() {
 				return v, false
 			}
 			elemType := v.Type().Elem()
 			if elemType.Kind() != reflect.Struct {
 				return v, false
 			}
-			v.Set(cachedValue(elemType))
+			if !includeUnexported || v.CanSet() {
+				v.Set(cachedValue(elemType))
+			} else {
+				reflectExportValue(v).Set(cachedValue(elemType))
+			}
 		}
 		v = v.Elem()
 	}

@@ -30,7 +30,7 @@ func decodeMapValue(d *Decoder, v reflect.Value) error {
 
 	typ := v.Type()
 	if n == -1 {
-		v.Set(reflect.Zero(typ))
+		d.reflectSet(v, reflect.Zero(typ))
 		return nil
 	}
 
@@ -39,7 +39,7 @@ func decodeMapValue(d *Decoder, v reflect.Value) error {
 		if d.flags&disableAllocLimitFlag == 0 {
 			ln = min(ln, maxMapSize)
 		}
-		v.Set(reflect.MakeMapWithSize(typ, ln))
+		d.reflectSet(v, reflect.MakeMapWithSize(typ, ln))
 	}
 	if n == 0 {
 		return nil
@@ -306,11 +306,11 @@ func decodeStructValue(d *Decoder, v reflect.Value) error {
 	}
 
 	if n <= 0 {
-		v.Set(reflect.Zero(v.Type()))
+		d.reflectSet(v, reflect.Zero(v.Type()))
 		return nil
 	}
 
-	fields := structs.Fields(v.Type(), d.structTag)
+	fields := structs.Fields(v.Type(), d.structTag, d.flags&includeUnexportedFlag != 0, d.ignoredStructFields[v.Type()])
 	if n != len(fields.List) {
 		return errArrayStruct
 	}
@@ -321,16 +321,20 @@ func decodeStructValue(d *Decoder, v reflect.Value) error {
 		}
 	}
 
+	if err := decodeHook(v); err != nil {
+		return err
+	}
+
 	return nil
 }
 
 func (d *Decoder) decodeStruct(v reflect.Value, n int) error {
 	if n == -1 {
-		v.Set(reflect.Zero(v.Type()))
+		d.reflectSet(v, reflect.Zero(v.Type()))
 		return nil
 	}
 
-	fields := structs.Fields(v.Type(), d.structTag)
+	fields := structs.Fields(v.Type(), d.structTag, d.flags&includeUnexportedFlag != 0, d.ignoredStructFields[v.Type()])
 	for i := 0; i < n; i++ {
 		name, err := d.decodeStringTemp()
 		if err != nil {
@@ -350,6 +354,10 @@ func (d *Decoder) decodeStruct(v reflect.Value, n int) error {
 		if err := d.Skip(); err != nil {
 			return err
 		}
+	}
+
+	if err := decodeHook(v); err != nil {
+		return err
 	}
 
 	return nil

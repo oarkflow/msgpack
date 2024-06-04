@@ -5,7 +5,6 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math"
-	"math/big"
 	"net/url"
 	"reflect"
 	"strings"
@@ -620,8 +619,6 @@ var (
 			in:  InlineDupTest{FooTest{"foo"}, FooDupTest{"foo"}},
 			out: new(InlineDupTest),
 		},
-
-		{in: big.NewInt(123), out: new(big.Int)},
 	}
 )
 

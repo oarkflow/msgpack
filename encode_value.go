@@ -1,7 +1,6 @@
 package msgpack
 
 import (
-	"encoding"
 	"fmt"
 	"reflect"
 )
@@ -63,12 +62,6 @@ func _getEncoder(typ reflect.Type) encoderFunc {
 	if typ.Implements(marshalerType) {
 		return marshalValue
 	}
-	if typ.Implements(binaryMarshalerType) {
-		return marshalBinaryValue
-	}
-	if typ.Implements(textMarshalerType) {
-		return marshalTextValue
-	}
 
 	// Addressable struct field value.
 	if kind != reflect.Ptr {
@@ -78,12 +71,6 @@ func _getEncoder(typ reflect.Type) encoderFunc {
 		}
 		if ptr.Implements(marshalerType) {
 			return marshalValuePtr
-		}
-		if ptr.Implements(binaryMarshalerType) {
-			return marshalBinaryValueAddr
-		}
-		if ptr.Implements(textMarshalerType) {
-			return marshalTextValueAddr
 		}
 	}
 
@@ -178,6 +165,11 @@ func encodeInterfaceValue(e *Encoder, v reflect.Value) error {
 	if v.IsNil() {
 		return e.EncodeNil()
 	}
+	if tag, typ := getConcreteTypeTag(v.Elem()); typ != nil {
+		if _, ok := taggedInterfaceTypeMap[tag]; ok {
+			return e.encodeTaggedInterface(tag, v)
+		}
+	}
 	return e.EncodeValue(v.Elem())
 }
 
@@ -205,50 +197,4 @@ func nilableType(t reflect.Type) bool {
 		t = t.Elem()
 	}
 	return nilable(t.Kind())
-}
-
-//------------------------------------------------------------------------------
-
-func marshalBinaryValueAddr(e *Encoder, v reflect.Value) error {
-	if !v.CanAddr() {
-		return fmt.Errorf("msgpack: Encode(non-addressable %T)", v.Interface())
-	}
-	return marshalBinaryValue(e, v.Addr())
-}
-
-func marshalBinaryValue(e *Encoder, v reflect.Value) error {
-	if nilable(v.Kind()) && v.IsNil() {
-		return e.EncodeNil()
-	}
-
-	marshaler := v.Interface().(encoding.BinaryMarshaler)
-	data, err := marshaler.MarshalBinary()
-	if err != nil {
-		return err
-	}
-
-	return e.EncodeBytes(data)
-}
-
-//------------------------------------------------------------------------------
-
-func marshalTextValueAddr(e *Encoder, v reflect.Value) error {
-	if !v.CanAddr() {
-		return fmt.Errorf("msgpack: Encode(non-addressable %T)", v.Interface())
-	}
-	return marshalTextValue(e, v.Addr())
-}
-
-func marshalTextValue(e *Encoder, v reflect.Value) error {
-	if nilable(v.Kind()) && v.IsNil() {
-		return e.EncodeNil()
-	}
-
-	marshaler := v.Interface().(encoding.TextMarshaler)
-	data, err := marshaler.MarshalText()
-	if err != nil {
-		return err
-	}
-
-	return e.EncodeBytes(data)
 }

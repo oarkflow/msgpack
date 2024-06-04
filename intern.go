@@ -33,7 +33,7 @@ func decodeInternedStringExt(d *Decoder, v reflect.Value, extLen int) error {
 		return err
 	}
 
-	v.SetString(s)
+	d.reflectSetString(v, s)
 	return nil
 }
 
@@ -102,7 +102,7 @@ func (e *Encoder) encodeInternedStringIndex(idx int) error {
 func decodeInternedInterfaceValue(d *Decoder, v reflect.Value) error {
 	s, err := d.decodeInternedString(true)
 	if err == nil {
-		v.Set(reflect.ValueOf(s))
+		d.reflectSet(v, reflect.ValueOf(s))
 		return nil
 	}
 	if err != nil {
@@ -123,7 +123,7 @@ func decodeInternedStringValue(d *Decoder, v reflect.Value) error {
 		return err
 	}
 
-	v.SetString(s)
+	d.reflectSetString(v, s)
 	return nil
 }
 

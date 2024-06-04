@@ -64,7 +64,7 @@ func decodeStringValue(d *Decoder, v reflect.Value) error {
 	if err != nil {
 		return err
 	}
-	v.SetString(s)
+	d.reflectSetString(v, s)
 	return nil
 }
 
@@ -165,7 +165,7 @@ func decodeBytesValue(d *Decoder, v reflect.Value) error {
 		return err
 	}
 
-	v.SetBytes(b)
+	d.reflectSetBytes(v, b)
 
 	return nil
 }

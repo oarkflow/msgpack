@@ -15,12 +15,19 @@ type extInfo struct {
 
 var extTypes = make(map[int8]*extInfo)
 
+var reservedExtIDs = map[int8]struct{}{
+	taggedInterfaceExtID: {},
+}
+
 type MarshalerUnmarshaler interface {
 	Marshaler
 	Unmarshaler
 }
 
 func RegisterExt(extID int8, value MarshalerUnmarshaler) {
+	if _, ok := reservedExtIDs[extID]; ok {
+		panic(fmt.Sprintf("extID %d is reserved", extID))
+	}
 	RegisterExtEncoder(extID, value, func(e *Encoder, v reflect.Value) ([]byte, error) {
 		marshaler := v.Interface().(Marshaler)
 		return marshaler.MarshalMsgpack()
@@ -44,6 +51,10 @@ func RegisterExtEncoder(
 	value interface{},
 	encoder func(enc *Encoder, v reflect.Value) ([]byte, error),
 ) {
+	if _, ok := reservedExtIDs[extID]; ok {
+		panic(fmt.Sprintf("extID %d is reserved", extID))
+	}
+
 	unregisterExtEncoder(extID)
 
 	typ := reflect.TypeOf(value)
@@ -107,6 +118,10 @@ func RegisterExtDecoder(
 	value interface{},
 	decoder func(dec *Decoder, v reflect.Value, extLen int) error,
 ) {
+	if _, ok := reservedExtIDs[extID]; ok {
+		panic(fmt.Sprintf("extID %d is reserved", extID))
+	}
+
 	unregisterExtDecoder(extID)
 
 	typ := reflect.TypeOf(value)
@@ -256,7 +271,7 @@ func (d *Decoder) decodeInterfaceExt(c byte) (interface{}, error) {
 
 	v := d.newValue(info.Type).Elem()
 	if nilable(v.Kind()) && v.IsNil() {
-		v.Set(d.newValue(info.Type.Elem()))
+		d.reflectSet(v, d.newValue(info.Type.Elem()))
 	}
 
 	if err := info.Decoder(d, v, extLen); err != nil {

@@ -74,6 +74,8 @@ type Decoder struct {
 	rec        []byte
 	dict       []string
 	flags      uint32
+
+	ignoredStructFields map[reflect.Type]map[string]struct{}
 }
 
 // NewDecoder returns a new decoder that reads from r.
@@ -91,6 +93,9 @@ func NewDecoder(r io.Reader) *Decoder {
 // reader to read from r.
 func (d *Decoder) Reset(r io.Reader) {
 	d.ResetDict(r, nil)
+	for k := range d.ignoredStructFields {
+		delete(d.ignoredStructFields, k)
+	}
 }
 
 // ResetDict is like Reset, but also resets the dict.
@@ -182,6 +187,27 @@ func (d *Decoder) DisableAllocLimit(on bool) {
 	} else {
 		d.flags &= ^disableAllocLimitFlag
 	}
+}
+
+// IncludeUnexported causes the Decoder to decode unexported fields
+func (d *Decoder) IncludeUnexported(included bool) {
+	if included {
+		d.flags |= includeUnexportedFlag
+	} else {
+		d.flags &= ^includeUnexportedFlag
+	}
+}
+
+// IgnoreStructField causes the Decoder to ignore the field whose name is fieldName of the struct whose type is structType.
+// This method is similar to `msgpack:"-"` tag.
+func (d *Decoder) IgnoreStructField(structType reflect.Type, fieldName string) {
+	if d.ignoredStructFields == nil {
+		d.ignoredStructFields = make(map[reflect.Type]map[string]struct{})
+	}
+	if d.ignoredStructFields[structType] == nil {
+		d.ignoredStructFields[structType] = make(map[string]struct{})
+	}
+	d.ignoredStructFields[structType][fieldName] = struct{}{}
 }
 
 // Buffered returns a reader of the data remaining in the Decoder's buffer.
@@ -351,7 +377,7 @@ func (d *Decoder) decodeNilValue(v reflect.Value) error {
 	if v.Kind() == reflect.Ptr {
 		v = v.Elem()
 	}
-	v.Set(reflect.Zero(v.Type()))
+	d.reflectSet(v, reflect.Zero(v.Type()))
 	return err
 }
 
@@ -458,7 +484,17 @@ func (d *Decoder) DecodeInterface() (interface{}, error) {
 			return nil, err
 		}
 		return d.decodeMapDefault()
-	case msgpcode.FixExt1, msgpcode.FixExt2, msgpcode.FixExt4, msgpcode.FixExt8, msgpcode.FixExt16,
+	case msgpcode.FixExt1:
+		extID, err := d.PeekCode()
+		if err != nil {
+			return nil, err
+		}
+		if extID == taggedInterfaceExtID {
+			_, _ = d.readCode()
+			return d.decodeTaggedInterface()
+		}
+		return d.decodeInterfaceExt(c)
+	case msgpcode.FixExt2, msgpcode.FixExt4, msgpcode.FixExt8, msgpcode.FixExt16,
 		msgpcode.Ext8, msgpcode.Ext16, msgpcode.Ext32:
 		return d.decodeInterfaceExt(c)
 	}
@@ -516,7 +552,17 @@ func (d *Decoder) DecodeInterfaceLoose() (interface{}, error) {
 			return nil, err
 		}
 		return d.decodeMapDefault()
-	case msgpcode.FixExt1, msgpcode.FixExt2, msgpcode.FixExt4, msgpcode.FixExt8, msgpcode.FixExt16,
+	case msgpcode.FixExt1:
+		extID, err := d.PeekCode()
+		if err != nil {
+			return nil, err
+		}
+		if extID == taggedInterfaceExtID {
+			_, _ = d.readCode()
+			return d.decodeTaggedInterface()
+		}
+		return d.decodeInterfaceExt(c)
+	case msgpcode.FixExt2, msgpcode.FixExt4, msgpcode.FixExt8, msgpcode.FixExt16,
 		msgpcode.Ext8, msgpcode.Ext16, msgpcode.Ext32:
 		return d.decodeInterfaceExt(c)
 	}
