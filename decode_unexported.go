@@ -72,3 +72,10 @@ func (d *Decoder) reflectSetMapIndex(v reflect.Value, key reflect.Value, elem re
 	}
 	reflectExportValue(v).SetMapIndex(key, elem)
 }
+
+func (d *Decoder) reflectStringSlicePtr(v reflect.Value) *[]string {
+	if d.flags&includeUnexportedFlag == 0 || v.CanInterface() {
+		return v.Interface().(*[]string)
+	}
+	return (*[]string)(v.UnsafePointer())
+}

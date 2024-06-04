@@ -29,6 +29,7 @@ type Foo struct {
 	delta   uint256.Int
 	epsilon IBar
 	zeta    map[uint64]string
+	eta     []string
 	ignored uint64
 }
 
@@ -58,6 +59,7 @@ func TestFoo(t *testing.T) {
 		zeta: map[uint64]string{
 			69696969: "foo",
 		},
+		eta:     []string{"foo", "bar"},
 		ignored: 69696969,
 	}
 

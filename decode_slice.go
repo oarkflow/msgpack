@@ -36,7 +36,7 @@ func (d *Decoder) arrayLen(c byte) (int, error) {
 }
 
 func decodeStringSliceValue(d *Decoder, v reflect.Value) error {
-	ptr := v.Addr().Convert(sliceStringPtrType).Interface().(*[]string)
+	ptr := d.reflectStringSlicePtr(v.Addr().Convert(sliceStringPtrType))
 	return d.decodeStringSlicePtr(ptr)
 }
 
