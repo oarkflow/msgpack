@@ -49,7 +49,7 @@ func (f *Foo) AfterMsgpackUnmarshal() error {
 
 func newUint64(v uint64) *uint64 { return &v }
 
-func TestFoo(t *testing.T) {
+func TestMarshalUnmarshalUnexportedFields(t *testing.T) {
 	msgpack.RegisterConcreteType(&Bar{})
 
 	expected := &Foo{
