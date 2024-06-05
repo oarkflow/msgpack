@@ -60,22 +60,35 @@ type Foo struct {
 	iota_   map[string]bool
 	kappa   map[string]struct{}
 	lambda  map[string]tokenInfo
+	mu      *Token
 	ignored uint64
-}
-
-func (f *Foo) BeforeMsgpackMarshal() error {
-	*f.alpha += 1
-	return nil
-}
-
-func (f *Foo) AfterMsgpackUnmarshal() error {
-	*f.alpha -= 1
-	return nil
 }
 
 func newUint64(v uint64) *uint64 { return &v }
 
-func TestMarshalUnmarshalUnexportedFields(t *testing.T) {
+type Currency interface {
+	Currency()
+}
+
+type BaseCurrency struct {
+	Currency Currency `msgpack:"-"`
+	Symbol   string
+	Name     string
+}
+
+type Token struct {
+	*BaseCurrency
+	Address string
+}
+
+func (*Token) Currency() {}
+
+func (t *Token) AfterMsgpackUnmarshal() error {
+	t.BaseCurrency.Currency = t
+	return nil
+}
+
+func TestMarshalUnmarshalForked(t *testing.T) {
 	msgpack.RegisterConcreteType(&Bar{})
 
 	expected := &Foo{
@@ -109,8 +122,16 @@ func TestMarshalUnmarshalUnexportedFields(t *testing.T) {
 				gauge:      hexToAddress("0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"),
 			},
 		},
+		mu: &Token{
+			BaseCurrency: &BaseCurrency{
+				Symbol: "T1",
+				Name:   "Token 1",
+			},
+			Address: "0xaaaa",
+		},
 		ignored: 69696969,
 	}
+	expected.mu.BaseCurrency.Currency = expected.mu
 
 	var encoded bytes.Buffer
 	en := msgpack.NewEncoder(&encoded)
@@ -133,6 +154,5 @@ func TestMarshalUnmarshalUnexportedFields(t *testing.T) {
 	require.Zerof(t, decoded.ignored, "ignored fields via IgnoreStructField must be zero")
 	decoded.ignored = expected.ignored
 
-	*expected.alpha -= 1
 	require.EqualValues(t, expected, decoded)
 }
