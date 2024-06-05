@@ -2,9 +2,11 @@ package msgpack_test
 
 import (
 	"bytes"
+	"encoding/hex"
 	"math"
 	"math/big"
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/KyberNetwork/msgpack/v5"
@@ -12,6 +14,23 @@ import (
 	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/require"
 )
+
+type Address [20]byte
+
+func hexToAddress(s string) Address {
+	s = strings.TrimPrefix(s, "0x")
+	var a Address
+	b, err := hex.DecodeString(s)
+	if err != nil {
+		return a
+	}
+	if len(b) > 20 {
+		copy(a[:], b[len(b)-20:])
+	} else {
+		copy(a[20-len(b):], b[:])
+	}
+	return a
+}
 
 type Bar struct {
 	alpha *uint256.Int
@@ -22,6 +41,12 @@ type IBar interface {
 }
 
 func (*Bar) Bar() {}
+
+type tokenInfo struct {
+	indexPlus1 uint8
+	scale      uint8
+	gauge      Address
+}
 
 type Foo struct {
 	alpha   *uint64
@@ -34,6 +59,7 @@ type Foo struct {
 	theta   map[string]string
 	iota_   map[string]bool
 	kappa   map[string]struct{}
+	lambda  map[string]tokenInfo
 	ignored uint64
 }
 
@@ -75,6 +101,13 @@ func TestMarshalUnmarshalUnexportedFields(t *testing.T) {
 		kappa: map[string]struct{}{
 			"foo": {},
 			"bar": {},
+		},
+		lambda: map[string]tokenInfo{
+			"foo": {
+				indexPlus1: 99,
+				scale:      99,
+				gauge:      hexToAddress("0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"),
+			},
 		},
 		ignored: 69696969,
 	}
