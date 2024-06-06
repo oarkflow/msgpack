@@ -82,8 +82,6 @@ type Encoder struct {
 	buf       []byte
 	timeBuf   []byte
 	flags     uint32
-
-	ignoredStructFields map[reflect.Type]map[string]struct{}
 }
 
 // NewEncoder returns a new encoder that writes to w.
@@ -206,18 +204,6 @@ func (e *Encoder) IncludeUnexported(included bool) {
 	} else {
 		e.flags &= ^includeUnexportedFlag
 	}
-}
-
-// IgnoreStructField causes the Encoder to ignore the field whose name is fieldName of the struct whose type is structType.
-// This method is similar to `msgpack:"-"` tag.
-func (e *Encoder) IgnoreStructField(structType reflect.Type, fieldName string) {
-	if e.ignoredStructFields == nil {
-		e.ignoredStructFields = make(map[reflect.Type]map[string]struct{})
-	}
-	if e.ignoredStructFields[structType] == nil {
-		e.ignoredStructFields[structType] = make(map[string]struct{})
-	}
-	e.ignoredStructFields[structType][fieldName] = struct{}{}
 }
 
 func (e *Encoder) Encode(v interface{}) error {

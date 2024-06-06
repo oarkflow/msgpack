@@ -5,7 +5,6 @@ import (
 	"encoding/hex"
 	"math"
 	"math/big"
-	"reflect"
 	"strings"
 	"testing"
 
@@ -61,7 +60,6 @@ type Foo struct {
 	kappa   map[string]struct{}
 	lambda  map[string]tokenInfo
 	mu      *Token
-	ignored uint64
 }
 
 func newUint64(v uint64) *uint64 { return &v }
@@ -129,14 +127,12 @@ func TestMarshalUnmarshalForked(t *testing.T) {
 			},
 			Address: "0xaaaa",
 		},
-		ignored: 69696969,
 	}
 	expected.mu.BaseCurrency.Currency = expected.mu
 
 	var encoded bytes.Buffer
 	en := msgpack.NewEncoder(&encoded)
 	en.IncludeUnexported(true)
-	en.IgnoreStructField(reflect.TypeOf((*Foo)(nil)).Elem(), "ignored")
 
 	err := en.Encode(expected)
 	require.NoError(t, err)
@@ -144,15 +140,11 @@ func TestMarshalUnmarshalForked(t *testing.T) {
 	decoded := new(Foo)
 	de := msgpack.NewDecoder(&encoded)
 	de.IncludeUnexported(true)
-	de.IgnoreStructField(reflect.TypeOf((*Foo)(nil)).Elem(), "ignored")
 
 	err = de.Decode(decoded)
 	require.NoError(t, err)
 
 	spew.Dump(decoded)
-
-	require.Zerof(t, decoded.ignored, "ignored fields via IgnoreStructField must be zero")
-	decoded.ignored = expected.ignored
 
 	require.EqualValues(t, expected, decoded)
 }

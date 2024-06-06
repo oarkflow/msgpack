@@ -310,7 +310,7 @@ func decodeStructValue(d *Decoder, v reflect.Value) error {
 		return nil
 	}
 
-	fields := structs.Fields(v.Type(), d.structTag, d.flags&includeUnexportedFlag != 0, d.ignoredStructFields[v.Type()])
+	fields := structs.Fields(v.Type(), d.structTag, d.flags&includeUnexportedFlag != 0)
 	if n != len(fields.List) {
 		return errArrayStruct
 	}
@@ -334,7 +334,7 @@ func (d *Decoder) decodeStruct(v reflect.Value, n int) error {
 		return nil
 	}
 
-	fields := structs.Fields(v.Type(), d.structTag, d.flags&includeUnexportedFlag != 0, d.ignoredStructFields[v.Type()])
+	fields := structs.Fields(v.Type(), d.structTag, d.flags&includeUnexportedFlag != 0)
 	for i := 0; i < n; i++ {
 		name, err := d.decodeStringTemp()
 		if err != nil {

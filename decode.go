@@ -74,8 +74,6 @@ type Decoder struct {
 	rec        []byte
 	dict       []string
 	flags      uint32
-
-	ignoredStructFields map[reflect.Type]map[string]struct{}
 }
 
 // NewDecoder returns a new decoder that reads from r.
@@ -193,18 +191,6 @@ func (d *Decoder) IncludeUnexported(included bool) {
 	} else {
 		d.flags &= ^includeUnexportedFlag
 	}
-}
-
-// IgnoreStructField causes the Decoder to ignore the field whose name is fieldName of the struct whose type is structType.
-// This method is similar to `msgpack:"-"` tag.
-func (d *Decoder) IgnoreStructField(structType reflect.Type, fieldName string) {
-	if d.ignoredStructFields == nil {
-		d.ignoredStructFields = make(map[reflect.Type]map[string]struct{})
-	}
-	if d.ignoredStructFields[structType] == nil {
-		d.ignoredStructFields[structType] = make(map[string]struct{})
-	}
-	d.ignoredStructFields[structType][fieldName] = struct{}{}
 }
 
 // Buffered returns a reader of the data remaining in the Decoder's buffer.

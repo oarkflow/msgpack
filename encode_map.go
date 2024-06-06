@@ -206,7 +206,7 @@ func (e *Encoder) EncodeMapLen(l int) error {
 }
 
 func encodeStructValue(e *Encoder, strct reflect.Value) error {
-	structFields := structs.Fields(strct.Type(), e.structTag, e.flags&includeUnexportedFlag != 0, e.ignoredStructFields[strct.Type()])
+	structFields := structs.Fields(strct.Type(), e.structTag, e.flags&includeUnexportedFlag != 0)
 	if e.flags&arrayEncodedStructsFlag != 0 || structFields.AsArray {
 		return encodeStructValueAsArray(e, strct, structFields.List)
 	}

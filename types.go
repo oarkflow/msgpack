@@ -64,33 +64,15 @@ func newStructCache() *structCache {
 	return new(structCache)
 }
 
-func (m *structCache) Fields(typ reflect.Type, tag string, includeUnexported bool, ignoredFields map[string]struct{}) *fields {
+func (m *structCache) Fields(typ reflect.Type, tag string, includeUnexported bool) *fields {
 	key := structCacheKey{tag: tag, includeUnexported: includeUnexported, typ: typ}
 
-	var fs *fields
 	if v, ok := m.m.Load(key); ok {
-		fs = v.(*fields)
-	} else {
-		fs = getFields(typ, tag, includeUnexported)
-		m.m.Store(key, fs)
+		return v.(*fields)
 	}
 
-	if len(ignoredFields) > 0 {
-		filteredFs := *fs
-		filteredFs.Map = make(map[string]*field, len(fs.Map))
-		filteredFs.List = make([]*field, 0, len(fs.List))
-		for name, field := range fs.Map {
-			if _, ignored := ignoredFields[name]; !ignored {
-				filteredFs.Map[name] = field
-			}
-		}
-		for _, field := range fs.List {
-			if _, ignored := ignoredFields[field.name]; !ignored {
-				filteredFs.List = append(filteredFs.List, field)
-			}
-		}
-		return &filteredFs
-	}
+	fs := getFields(typ, tag, includeUnexported)
+	m.m.Store(key, fs)
 
 	return fs
 }
@@ -349,7 +331,7 @@ func (e *Encoder) isEmptyValue(v reflect.Value) bool {
 	case reflect.Array, reflect.Map, reflect.Slice, reflect.String:
 		return v.Len() == 0
 	case reflect.Struct:
-		structFields := structs.Fields(v.Type(), e.structTag, e.flags&includeUnexportedFlag != 0, nil)
+		structFields := structs.Fields(v.Type(), e.structTag, e.flags&includeUnexportedFlag != 0)
 		fields := structFields.OmitEmpty(e, v)
 		return len(fields) == 0
 	case reflect.Bool:
