@@ -133,6 +133,7 @@ func TestMarshalUnmarshalForked(t *testing.T) {
 	var encoded bytes.Buffer
 	en := msgpack.NewEncoder(&encoded)
 	en.IncludeUnexported(true)
+	en.SetForceAsArray(true)
 
 	err := en.Encode(expected)
 	require.NoError(t, err)
@@ -140,6 +141,7 @@ func TestMarshalUnmarshalForked(t *testing.T) {
 	decoded := new(Foo)
 	de := msgpack.NewDecoder(&encoded)
 	de.IncludeUnexported(true)
+	en.SetForceAsArray(true)
 
 	err = de.Decode(decoded)
 	require.NoError(t, err)

@@ -18,6 +18,7 @@ const (
 	useInternedStringsFlag
 	omitEmptyFlag
 	includeUnexportedFlag
+	forceAsArrayFlag
 )
 
 type writer interface {
@@ -203,6 +204,14 @@ func (e *Encoder) IncludeUnexported(included bool) {
 		e.flags |= includeUnexportedFlag
 	} else {
 		e.flags &= ^includeUnexportedFlag
+	}
+}
+
+func (e *Encoder) SetForceAsArray(forced bool) {
+	if forced {
+		e.flags |= forceAsArrayFlag
+	} else {
+		e.flags &= ^forceAsArrayFlag
 	}
 }
 

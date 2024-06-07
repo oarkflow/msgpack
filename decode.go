@@ -193,6 +193,14 @@ func (d *Decoder) IncludeUnexported(included bool) {
 	}
 }
 
+func (d *Decoder) SetForceAsArray(forced bool) {
+	if forced {
+		d.flags |= forceAsArrayFlag
+	} else {
+		d.flags &= ^forceAsArrayFlag
+	}
+}
+
 // Buffered returns a reader of the data remaining in the Decoder's buffer.
 // The reader is valid until the next call to Decode.
 func (d *Decoder) Buffered() io.Reader {
