@@ -7,7 +7,7 @@ import (
 )
 
 func (e *Encoder) reflectStringSlice(v reflect.Value) []string {
-	if e.flags&includeUnexportedFlag == 0 || v.CanInterface() {
+	if e.flags&encodeIncludeUnexportedFlag == 0 || v.CanInterface() {
 		return v.Interface().([]string)
 	}
 	return unsafe.Slice((*string)(v.UnsafePointer()), v.Len())

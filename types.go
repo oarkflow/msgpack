@@ -113,7 +113,7 @@ func (f *field) EncodeValue(e *Encoder, strct reflect.Value) error {
 }
 
 func (f *field) DecodeValue(d *Decoder, strct reflect.Value) error {
-	v := fieldByIndexAlloc(strct, f.index, d.flags&includeUnexportedFlag != 0)
+	v := fieldByIndexAlloc(strct, f.index, d.flags&decodeIncludeUnexportedFlag != 0)
 	return f.decoder(d, v)
 }
 
@@ -339,7 +339,7 @@ func (e *Encoder) isEmptyValue(v reflect.Value) bool {
 	case reflect.Array, reflect.Map, reflect.Slice, reflect.String:
 		return v.Len() == 0
 	case reflect.Struct:
-		structFields := structs.Fields(v.Type(), e.structTag, e.flags&includeUnexportedFlag != 0, e.flags&forceAsArrayFlag != 0)
+		structFields := structs.Fields(v.Type(), e.structTag, e.flags&encodeIncludeUnexportedFlag != 0, e.flags&encodeForceAsArrayFlag != 0)
 		fields := structFields.OmitEmpty(e, v)
 		return len(fields) == 0
 	case reflect.Bool:

@@ -24,6 +24,8 @@ const (
 	disallowUnknownFieldsFlag
 	usePreallocateValues
 	disableAllocLimitFlag
+	decodeIncludeUnexportedFlag
+	decodeForceAsArrayFlag
 )
 
 type bufReader interface {
@@ -187,17 +189,17 @@ func (d *Decoder) DisableAllocLimit(on bool) {
 // IncludeUnexported causes the Decoder to decode unexported fields
 func (d *Decoder) IncludeUnexported(included bool) {
 	if included {
-		d.flags |= includeUnexportedFlag
+		d.flags |= decodeIncludeUnexportedFlag
 	} else {
-		d.flags &= ^includeUnexportedFlag
+		d.flags &= ^decodeIncludeUnexportedFlag
 	}
 }
 
 func (d *Decoder) SetForceAsArray(forced bool) {
 	if forced {
-		d.flags |= forceAsArrayFlag
+		d.flags |= decodeForceAsArrayFlag
 	} else {
-		d.flags &= ^forceAsArrayFlag
+		d.flags &= ^decodeForceAsArrayFlag
 	}
 }
 
