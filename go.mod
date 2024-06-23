@@ -1,4 +1,4 @@
-module github.com/KyberNetwork/msgpack/v5
+module github.com/oarkflow/msgpack
 
 go 1.19
 

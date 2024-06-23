@@ -5,7 +5,7 @@ import (
 	"math"
 	"reflect"
 
-	"github.com/KyberNetwork/msgpack/v5/msgpcode"
+	"github.com/oarkflow/msgpack/msgpcode"
 )
 
 func (d *Decoder) skipN(n int) error {

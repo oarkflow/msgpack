@@ -10,7 +10,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/KyberNetwork/msgpack/v5/msgpcode"
+	"github.com/oarkflow/msgpack/msgpcode"
 )
 
 const (

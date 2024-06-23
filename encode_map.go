@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"sort"
 
-	"github.com/KyberNetwork/msgpack/v5/msgpcode"
+	"github.com/oarkflow/msgpack/msgpcode"
 )
 
 func encodeMapValue(e *Encoder, v reflect.Value) error {

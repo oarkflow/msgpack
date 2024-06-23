@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/KyberNetwork/msgpack/v5/msgpcode"
+	"github.com/oarkflow/msgpack/msgpcode"
 )
 
 var sliceStringPtrType = reflect.TypeOf((*[]string)(nil))

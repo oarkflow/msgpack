@@ -6,7 +6,7 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/KyberNetwork/msgpack/v5/msgpcode"
+	"github.com/oarkflow/msgpack/msgpcode"
 )
 
 var timeExtID int8 = -1
